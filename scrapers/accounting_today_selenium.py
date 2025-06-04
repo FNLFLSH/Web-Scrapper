@@ -1,10 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from horizon_scanner.config.categories import CATEGORY_KEYWORDS
 import logging
 import time
 
@@ -12,11 +11,20 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Define categories for filtering
+CATEGORIES = {
+    'fintech': ['fintech', 'finance', 'banking', 'payments', 'blockchain', 'crypto'],
+    'accounting': ['accounting', 'bookkeeping', 'audit', 'tax'],
+    'analytics': ['analytics', 'data', 'bi', 'business intelligence'],
+    'sales': ['sales', 'crm', 'customer relationship'],
+    'supply_chain': ['supply chain', 'logistics', 'inventory', 'procurement']
+}
+
 def classify_article(title, content):
     title_lower = title.lower()
     content_lower = content.lower()
     categories = set()
-    for category, keywords in CATEGORY_KEYWORDS.items():
+    for category, keywords in CATEGORIES.items():
         for keyword in keywords:
             if keyword in title_lower or keyword in content_lower:
                 categories.add(category)

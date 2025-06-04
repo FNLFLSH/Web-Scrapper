@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sage Webscraper</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+        }
+        .top-header {
+            background-color: #00DC82;
+            color: #000;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .header {
+            background-color: #111;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .feed {
+            max-width: 800px;
+            margin: 40px auto;
+            background: #111;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+        .article {
+            border-bottom: 1px solid #333;
+            padding: 18px 0;
+        }
+        .article:last-child {
+            border-bottom: none;
+        }
+        .title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .title:hover {
+            color: #00DC82;
+        }
+        .meta {
+            font-size: 0.95em;
+            color: #aaa;
+            margin-top: 4px;
+        }
+        .category {
+            display: inline-block;
+            background: #00DC82;
+            color: #000;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.85em;
+            margin-right: 8px;
+        }
+        .filter {
+            margin-bottom: 20px;
+        }
+        select {
+            font-size: 1em;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background: #111;
+            color: #fff;
+            margin-right: 10px;
+        }
+        .dropdown-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #noArticlesMsg {
+            color: #fff;
+            text-align: center;
+            margin-top: 30px;
+            font-size: 1.1em;
+        }
+    </style>
+    <script>
+        // Initialize filters when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing filters...');
+            updateSourceDropdown();
+            filterArticles();
+        });
+
+        function filterArticles() {
+            const vertical = document.getElementById('categoryFilter').value;
+            const source = document.getElementById('sourceFilter').value;
+            const sourceDetail = document.getElementById('sourceDetailFilter').value;
+            
+            console.log('Filtering with:', { vertical, source, sourceDetail });
+            
+            const articles = document.getElementsByClassName('article');
+            let visibleCount = 0;
+            
+            // Debug: Log total articles
+            console.log(`Total articles before filtering: ${articles.length}`);
+            
+            for (const article of articles) {
+                const cat = article.getAttribute('data-category');
+                const src = article.getAttribute('data-source');
+                const srcDetail = article.getAttribute('data-source-detail');
+                
+                // Debug: Log article attributes
+                console.log('Article:', {
+                    title: article.querySelector('.title').textContent,
+                    category: cat,
+                    source: src,
+                    sourceDetail: srcDetail
+                });
+                
+                // More robust matching logic
+                const verticalMatch = vertical === 'all' || !vertical || cat === vertical;
+                const sourceMatch = source === 'all' || !source || src === source;
+                const sourceDetailMatch = sourceDetail === 'all' || !sourceDetail || srcDetail === sourceDetail;
+                
+                const willShow = verticalMatch && sourceMatch && sourceDetailMatch;
+                console.log('Will show:', willShow, 'because:', {
+                    verticalMatch,
+                    sourceMatch,
+                    sourceDetailMatch
+                });
+                
+                if (willShow) {
+                    article.style.display = '';
+                    visibleCount++;
+                } else {
+                    article.style.display = 'none';
+                }
+            }
+            
+            console.log(`Showing ${visibleCount} of ${articles.length} articles`);
+            
+            const noArticlesMsg = document.getElementById('noArticlesMsg');
+            if (visibleCount === 0) {
+                if (!noArticlesMsg) {
+                    const msg = document.createElement('div');
+                    msg.id = 'noArticlesMsg';
+                    msg.textContent = 'No articles found for this combination.';
+                    document.querySelector('.feed').appendChild(msg);
+                }
+            } else if (noArticlesMsg) {
+                noArticlesMsg.remove();
+            }
+        }
+
+        function updateSourceDropdown() {
+            const source = document.getElementById('sourceFilter').value;
+            const sourceDetailFilter = document.getElementById('sourceDetailFilter');
+            
+            // Clear existing options
+            sourceDetailFilter.innerHTML = '<option value="all">All Sources</option>';
+            
+            // Debug: Log source selection
+            console.log('Updating source dropdown for:', source);
+            
+            if (source === 'news') {
+                const newsSources = ['Accounting Today', 'CFO Dive', 'Journal of Accountancy', 'AccountingWEB'];
+                newsSources.forEach(site => {
+                    const option = document.createElement('option');
+                    option.value = site;
+                    option.textContent = site;
+                    sourceDetailFilter.appendChild(option);
+                });
+                console.log('Added news sources:', newsSources);
+            } else if (source === 'incubator') {
+                const incubatorSources = ['Y Combinator', 'Techstars', '500 Startups'];
+                incubatorSources.forEach(site => {
+                    const option = document.createElement('option');
+                    option.value = site;
+                    option.textContent = site;
+                    sourceDetailFilter.appendChild(option);
+                });
+                console.log('Added incubator sources:', incubatorSources);
+            }
+        }
+
+        async function askSageAI() {
+            const question = document.getElementById('aiQuestion').value;
+            const summaryDiv = document.getElementById('aiSummary');
+            
+            if (!question.trim()) {
+                summaryDiv.textContent = 'Please enter a question.';
+                return;
+            }
+            
+            summaryDiv.textContent = 'Thinking...';
+            // Placeholder: Replace with real API call
+            setTimeout(() => {
+                summaryDiv.textContent = 'This is a placeholder summary for: ' + question;
+            }, 1200);
+        }
+    </script>
+</head>
+<body>
+    <div class="top-header">Sage Webscraper</div>
+    <div class="header">
+        <!-- AI Chatbot Model UI -->
+        <div style="width:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+            <div style="font-size:1.2em;font-weight:600;margin-bottom:10px;">Ask Sage AI for a quick summary</div>
+            <div style="display:flex;gap:10px;width:100%;max-width:500px;">
+                <input id="aiQuestion" type="text" placeholder="Ask about an article or topic..." style="flex:1;padding:8px;border-radius:4px;border:1px solid #333;background:#222;color:#fff;" />
+                <button onclick="askSageAI()" style="padding:8px 16px;border-radius:4px;background:#00DC82;color:#000;font-weight:600;border:none;cursor:pointer;">Ask</button>
+            </div>
+            <div id="aiSummary" style="margin-top:15px;color:#fff;text-align:left;width:100%;max-width:500px;"></div>
+        </div>
+    </div>
+    <div class="feed">
+        <div class="dropdown-filters">
+            <select id="categoryFilter" onchange="filterArticles()">
+                <option value="all">All Verticals</option>
+                {% for cat in categories %}
+                <option value="{{cat}}">{{cat}}</option>
+                {% endfor %}
+            </select>
+            <select id="sourceFilter" onchange="updateSourceDropdown(); filterArticles()">
+                <option value="all">All Sources</option>
+                <option value="news">News</option>
+                <option value="incubator">Incubator</option>
+            </select>
+            <select id="sourceDetailFilter" onchange="filterArticles()">
+                <option value="all">All Sources</option>
+            </select>
+        </div>
+        <div id="articlesContainer">
+            {% for article in articles %}
+            <div class="article" 
+                 data-category="{{article['category']}}" 
+                 data-source="{{article['source']}}" 
+                 data-source-detail="{{article['source_detail']}}"
+                 data-debug="true">
+                <a class="title" href="{{article['url']}}" target="_blank" rel="noopener noreferrer">{{article['title']}}</a>
+                <div class="meta">
+                    <span class="category">{{article['category']}}</span>
+                    <span>Source: {{article['source_detail']}}</span>
+                    <span> | {{article['scraped_at']}}</span>
+                </div>
+                <!-- Debug info -->
+                <div class="debug-info" style="display:none;">
+                    Category: {{article['category']}}
+                    Source: {{article['source']}}
+                    Source Detail: {{article['source_detail']}}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html> 

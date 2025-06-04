@@ -3,6 +3,7 @@ from aws.config import get_dynamodb_resource
 from config.categories import CATEGORIES
 import boto3
 from boto3.dynamodb.conditions import Key
+from scrapers.sage_scraper import scrape_all_sources
 
 app = Flask(__name__)
 dynamodb = get_dynamodb_resource()

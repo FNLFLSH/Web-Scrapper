@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sage Webscraper</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+        }
+        .header {
+            background-color: #00DC82;
+            color: #000;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .filters {
+            background-color: #111;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background: #222;
+            color: #fff;
+            font-size: 1em;
+            min-width: 200px;
+        }
+        #categoryFilter {
+            min-width: 300px;
+        }
+        #categoryFilter option {
+            padding: 8px;
+            white-space: normal;
+            line-height: 1.4;
+        }
+        .articles {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .article {
+            background: #111;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .article-title {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.2em;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .article-title:hover {
+            color: #00DC82;
+        }
+        .article-meta {
+            color: #888;
+            font-size: 0.9em;
+        }
+        .article-category {
+            display: inline-block;
+            background: #00DC82;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        #noArticles {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 1.2em;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #00DC82;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .loading-text {
+            margin-top: 10px;
+            color: #00DC82;
+            font-size: 1.1em;
+        }
+        .status-bar {
+            background-color: #111;
+            padding: 10px 20px;
+            text-align: center;
+            color: #00DC82;
+            font-size: 0.9em;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Sage Webscraper</div>
+    
+    <div class="filters">
+        <select id="categoryFilter" onchange="filterArticles()">
+            <option value="all">All Categories</option>
+            {% for category in categories %}
+            <option value="{{ category }}" title="{{ category_descriptions[category] }}">{{ category }} - {{ category_descriptions[category] }}</option>
+            {% endfor %}
+        </select>
+        <select id="typeFilter" onchange="updateSourceDropdown(); filterArticles()">
+            <option value="all">All Types</option>
+            <option value="news">News</option>
+            <option value="incubator">Incubator</option>
+        </select>
+        <select id="sourceFilter" onchange="filterArticles()">
+            <option value="all">All Sources</option>
+            {% for source in sources %}
+            <option value="{{ source }}">{{ source }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+        Scraping articles... This may take a few moments.
+    </div>
+    
+    <div class="loading" id="loadingSpinner">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading articles...</div>
+    </div>
+    
+    <div class="articles" id="articlesContainer">
+        <!-- Articles will be loaded here -->
+    </div>
+    
+    <script>
+        // Store all sources by type for dropdown updates
+        const allSources = {
+            news: [
+                {% for source in sources if source in ['Accounting Today', 'CFO Dive', 'Journal of Accountancy', 'AccountingWEB', 'Tax Notes', 'CPA Practice Advisor', 'Accounting Today - Tax', 'Accounting Today - Technology', 'Accounting Today - Audit', 'Accounting Today - Practice Management'] %}'{{ source }}',{% endfor %}
+            ],
+            incubator: [
+                {% for source in sources if source in ['Y Combinator', 'Techstars', '500 Startups'] %}'{{ source }}',{% endfor %}
+            ]
+        };
+
+        function updateSourceDropdown() {
+            const type = document.getElementById('typeFilter').value;
+            const sourceFilter = document.getElementById('sourceFilter');
+            sourceFilter.innerHTML = '<option value="all">All Sources</option>';
+            let filteredSources = [];
+            
+            if (type === 'news') {
+                filteredSources = allSources.news;
+            } else if (type === 'incubator') {
+                filteredSources = allSources.incubator;
+            } else {
+                filteredSources = [{% for source in sources %}'{{ source }}',{% endfor %}];
+            }
+            
+            filteredSources.forEach(site => {
+                const option = document.createElement('option');
+                option.value = site;
+                option.textContent = site;
+                sourceFilter.appendChild(option);
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('statusBar').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('statusBar').style.display = 'none';
+        }
+
+        function filterArticles() {
+            const category = document.getElementById('categoryFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const source = document.getElementById('sourceFilter').value;
+            const articles = document.getElementsByClassName('article');
+            let visibleCount = 0;
+            
+            for (const article of articles) {
+                const articleCategory = article.getAttribute('data-category');
+                const articleType = article.getAttribute('data-type');
+                const articleSource = article.getAttribute('data-source');
+                const categoryMatch = category === 'all' || articleCategory === category;
+                const typeMatch = type === 'all' || articleType === type;
+                const sourceMatch = source === 'all' || articleSource === source;
+                
+                if (categoryMatch && typeMatch && sourceMatch) {
+                    article.style.display = '';
+                    visibleCount++;
+                } else {
+                    article.style.display = 'none';
+                }
+            }
+            
+            // Show/hide no articles message
+            const noArticles = document.getElementById('noArticles');
+            if (visibleCount === 0) {
+                if (!noArticles) {
+                    const msg = document.createElement('div');
+                    msg.id = 'noArticles';
+                    msg.textContent = 'No articles found for these filters.';
+                    document.getElementById('articlesContainer').appendChild(msg);
+                }
+            } else if (noArticles) {
+                noArticles.remove();
+            }
+        }
+
+        function loadArticles() {
+            showLoading();
+            fetch('/get_articles')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('articlesContainer');
+                    container.innerHTML = '';
+                    
+                    data.articles.forEach(article => {
+                        const articleDiv = document.createElement('div');
+                        articleDiv.className = 'article';
+                        articleDiv.setAttribute('data-category', article.category);
+                        articleDiv.setAttribute('data-type', article.source_type);
+                        articleDiv.setAttribute('data-source', article.source_name);
+                        
+                        articleDiv.innerHTML = `
+                            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="article-title">
+                                ${article.title}
+                            </a>
+                            <div class="article-meta">
+                                <span class="article-category">${article.category}</span>
+                                <span>${article.source_name}</span>
+                                <span> | ${article.scraped_at}</span>
+                            </div>
+                        `;
+                        
+                        container.appendChild(articleDiv);
+                    });
+                    
+                    hideLoading();
+                    filterArticles();
+                })
+                .catch(error => {
+                    console.error('Error loading articles:', error);
+                    hideLoading();
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSourceDropdown();
+            loadArticles();
+        });
+    </script>
+</body>
+</html> 

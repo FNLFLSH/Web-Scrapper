@@ -1,4 +1,4 @@
-#!/Users/ejtheevildoer/Web_scrapper/venv/bin/python3
+#!/Users/ejtheevildoer/Web-Scrapper/venv/bin/python3.13
 # -*- coding: utf-8 -*-
 import re
 import sys
