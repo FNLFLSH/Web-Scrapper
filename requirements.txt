@@ -4,4 +4,5 @@ selenium==4.18.1
 beautifulsoup4==4.12.3
 requests==2.31.0
 webdriver-manager==4.0.1
-boto3==1.34.69 
+boto3==1.34.69
+nltk==3.8.1 

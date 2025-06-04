@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ article.title }} - Sage Webscraper</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+        }
+        .header {
+            background-color: #00DC82;
+            color: #000;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+        .left-panel {
+            flex: 1;
+            background: #111;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 300px;
+            overflow-y: auto;
+        }
+        .right-panel {
+            flex: 2;
+            background: #111;
+            border-radius: 8px;
+            padding: 0;
+            overflow: hidden;
+        }
+        .article-title {
+            color: #fff;
+            font-size: 1.8em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .article-meta {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+        .article-category {
+            display: inline-block;
+            background: #00DC82;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .article-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+        }
+        .summary-section {
+            margin-bottom: 30px;
+        }
+        .summary-title {
+            color: #00DC82;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+        }
+        .summary-content {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .key-points {
+            list-style-type: none;
+            padding: 0;
+        }
+        .key-points li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .key-points li:before {
+            content: "•";
+            color: #00DC82;
+            position: absolute;
+            left: 0;
+        }
+        .chat-container {
+            margin-top: 30px;
+        }
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #000;
+            border-radius: 4px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .user-message {
+            background: #00DC82;
+            color: #000;
+            margin-left: auto;
+        }
+        .bot-message {
+            background: #333;
+            color: #fff;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #222;
+            color: #fff;
+        }
+        .chat-input button {
+            padding: 10px 20px;
+            background: #00DC82;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .chat-input button:hover {
+            background: #00b368;
+        }
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #00DC82;
+            color: #000;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .back-button:hover {
+            background: #00b368;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #00DC82;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Sage Webscraper</div>
+    
+    <div class="container">
+        <div class="left-panel">
+            <a href="/" class="back-button">← Back to Articles</a>
+            
+            <div class="summary-section">
+                <h2 class="summary-title">Article Summary</h2>
+                <div class="summary-content">
+                    {{ summary }}
+                </div>
+                
+                <h3 class="summary-title">Key Points</h3>
+                <ul class="key-points">
+                    {% for point in key_points %}
+                    <li>{{ point }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <div class="chat-container">
+                <h2 class="summary-title">Ask about this article</h2>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        Hello! I can help you understand this article better. What would you like to know?
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Ask a question about this article..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <h1 class="article-title">{{ article.title }}</h1>
+            <div class="article-meta">
+                <span class="article-category">{{ article.category }}</span>
+                <span>{{ article.source_name }}</span>
+                <span> | {{ article.scraped_at }}</span>
+            </div>
+            <iframe src="{{ article.url }}" class="article-iframe" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+        </div>
+    </div>
+    
+    <script>
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                // Add user message to chat
+                addMessage(message, 'user');
+                input.value = '';
+                
+                // Send message to backend
+                fetch('/article_chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        article_id: '{{ article.id }}'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addMessage(data.response, 'bot');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+                });
+            }
+        }
+
+        function addMessage(text, type) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html> 
